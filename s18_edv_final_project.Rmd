@@ -1,0 +1,426 @@
+---
+title: "New York City Crime"
+author: "Ananya Jha, Adnan Rupani, Avery Freese, Sudeep Swarnapuri"
+resource_files:
+- .Renviron
+- .Renviron
+output:
+  html_notebook:
+    code_folding: hide
+    toc: yes
+    toc_depth: 4
+    toc_float: yes
+runtime: shiny
+---
+This is an R Interactive Document, which uses the [R Markdown](http://rmarkdown.rstudio.com/authoring_basics.html) language to generate HTML. For a brief introduction to R Markdown, please review this [video](https://www.youtube.com/watch?v=DNS7i2m4sB0&feature=youtu.be).
+
+#Load Packages
+This [code chunk](http://rmarkdown.rstudio.com/authoring_rcodechunks.html) loads the packages required to run the R code in the document.
+The last line of this code chunk enables document caching, which is expalined at this [link](http://rmarkdown.rstudio.com/authoring_rcodechunks.html).
+
+```{r setup, echo=FALSE}
+library(tidyverse)
+library(data.world)
+library(DT)
+library(plotly)
+library(shinydashboard)
+library(lubridate)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Display Session Information
+```{r}
+sessionInfo()
+```
+
+```{r}
+project1 <- "https://data.world/ananya-jha/s18-edv-project-4/" 
+data.world::set_config(cfg_env("DW_API")) 
+crimes2 <- data.world::query(data.world::qry_sql(
+ "   
+	select newny.county
+	FROM index_violent_property_and_firearm_rates_by_county_beginning_1990 AS index 
+INNER JOIN newny 
+ON index_violent_property_and_firearm_rates_by_county_beginning_1990.county = newny.county
+WHERE index.year = 2015
+ "),
+dataset = project1)
+```
+
+#Violent Crimes in New York City
+
+The dataset we chose to examine gave us information about reported crimes in New York City, from 1990 to 2016. The information was categorized by county, violent crime rate, property crime rate, firearm crime rate, and other crime statistics. We combined this data with census data about the level of education within these counties. 
+
+#Something Interesting: The trend in violent crimes
+
+In our quest to find something interesting, we found a trend that seemed to fundamentally oppose common knowledge. We expected that as the population within a country rose, the crime rate would rise as well. However, as we plotted the population and violent crime rates over time, we found that in actuality, the increase of time and population led to a massive decrease in crime for the four largest areas. Interestingly, this was not the case for the smaller counties. This can be seen in the plot below:
+
+<iframe src="https://public.tableau.com/views/Project4_107/Sheet1?::showVizHome=no" width="800" height="500"></iframe>
+
+#Education vs Crime
+
+One of our leading theories in examining why this was occuring was that over the years, New York became more gentrified and people with higher levels of education moved into the cities. Because the census data only gave us information on the education levels of New York Citizens in 2015, we first wanted to determine if there was a relationship between crime and education level in the first place. We first tried to determine if this was the case with crimes involving firearms, shown in the graph below. 
+
+```{r}
+inputPanel(selectInput("selectCounties2", label="Select County", choices=crimes2,multiple=TRUE, selected=c("Albany", "Allegany","Broome","Cayuga","Chemung","Clinton","Cortland","Franklin","Genesee","Greene","Jefferson","Livingston","Nassau","Oneida","Oswego","Putnam","Saratoga","Schuyler","Seneca","Suffolk","Tompkins","Ulster","Washington","Wayne","Yates"))
+)
+```
+
+```{r}
+df2 <- eventReactive(c(input$selectCounties2), { 
+  project1 <- "https://data.world/ananya-jha/s18-edv-project-4/" 
+  data.world::set_config(cfg_env("DW_API")) 
+  paramQuery <- data.world::qry_sql(
+   "   
+  select newny.county, ROUND(index_violent_property_and_firearm_rates_by_county_beginning_1990.firearm_rate/5)*5 AS fire_arm_bins,
+      index_violent_property_and_firearm_rates_by_county_beginning_1990.population,
+      (newny.b15001_005 + newny.b15001_013 + newny.b15001_021 + newny.b15001_029 + newny.b15001_037)
+      / newny.b15001_002 as male_hs_drop,
+      (newny.b15001_046 + newny.b15001_054 + newny.b15001_062 + newny.b15001_070 + newny.b15001_078)
+      / newny.b15001_043 as female_hs_drop,
+      ROUND(((newny.b15001_005 + newny.b15001_013 + newny.b15001_021 + newny.b15001_029 + newny.b15001_037) +
+      (newny.b15001_046 + newny.b15001_054 + newny.b15001_062 + newny.b15001_070 + newny.b15001_078)) /
+      (newny.b15001_002 + newny.b15001_043),4) AS total_hs_drop
+  from index_violent_property_and_firearm_rates_by_county_beginning_1990
+  inner join newny
+  ON index_violent_property_and_firearm_rates_by_county_beginning_1990.county = newny.county
+  where index_violent_property_and_firearm_rates_by_county_beginning_1990.year = 2015 and newny.county in (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+   ")
+  paramQuery$params <- c(input$selectCounties2[1], input$selectCounties2[2], input$selectCounties2[3], input$selectCounties2[4], input$selectCounties2[5], input$selectCounties2[6], input$selectCounties2[7], input$selectCounties2[8], input$selectCounties2[9], input$selectCounties2[10], input$selectCounties2[11], input$selectCounties2[12], input$selectCounties2[13], input$selectCounties2[14], input$selectCounties2[15], input$selectCounties2[16], input$selectCounties2[17], input$selectCounties2[18], input$selectCounties2[19], input$selectCounties2[20], input$selectCounties2[21], input$selectCounties2[22], input$selectCounties2[23], input$selectCounties2[24], input$selectCounties2[25], input$selectCounties2[26], input$selectCounties2[27], input$selectCounties2[28], input$selectCounties2[29], input$selectCounties2[30], input$selectCounties2[31], input$selectCounties2[32], input$selectCounties2[33], input$selectCounties2[34], input$selectCounties2[35], input$selectCounties2[36], input$selectCounties2[37], input$selectCounties2[38], input$selectCounties2[39], input$selectCounties2[40], input$selectCounties2[41], input$selectCounties2[42], input$selectCounties2[43], input$selectCounties2[44], input$selectCounties2[45], input$selectCounties2[46], input$selectCounties2[47], input$selectCounties2[48], input$selectCounties2[49], input$selectCounties2[50], input$selectCounties2[51], input$selectCounties2[52], input$selectCounties2[53], input$selectCounties2[54], input$selectCounties2[55], input$selectCounties2[56], input$selectCounties2[57], input$selectCounties2[58], input$selectCounties2[59], input$selectCounties2[60])
+  data.world::query(paramQuery, dataset = project1)
+}) 
+
+```
+
+```{r}
+Counties2 <- eventReactive(c(input$selectCounties2), { 
+  library('stringr')
+  str_c(input$selectCounties2, collapse=', ')
+})
+```
+
+```{r}
+renderDataTable({ DT::datatable(df2(), rownames = FALSE, extensions = list(Responsive = TRUE, FixedHeader = TRUE)
+)
+})
+```
+
+```{r}
+# Crosstab
+renderPlot({df2() %>% ggplot() + 
+  geom_text(aes(x=fire_arm_bins, y=county, label=total_hs_drop), size=10) +
+  geom_tile(aes(x=fire_arm_bins, y=county, fill=total_hs_drop), alpha=0.50) +
+  theme(legend.text=element_text(size=30)) +
+  theme(axis.text=element_text(size=40),
+        axis.title=element_text(size=30, face="bold"))  + 
+  theme(plot.title = element_text(size = 40, face = "bold")) + 
+  ggtitle(paste("Fire Arm Crimes (per 100k) in", Counties2(), " Counties, and Their HS Dropout Rates")) +
+  xlab("Firearm Crime Rate per 100K") + ylab("Counties")
+}, height = 2000, width = 2000)
+
+```
+
+The graph above illustrates that there is no correlation between reported firearm crimes (defined as violent crimes committed with the use of a firearm) and the level of HS drop out rates. This holds true for both males and females. 
+What is very interesting is that there are many examples of counties that actually have a relativey higher rate of firearm crimes but a lower rate of high school dropouts. This would imply that higher education is correlated with <i>more</i> firearm crimes rather than less. 
+
+As we thought about this, we realized that perhaps it was more difficult for those with lower education levels to purchase a firearm, whether that be because of limited income or due to tougher rules. This led us to ask a more tangential question: had firearm crimes increased or decreased as a percentage of overall violent crimes over the years. Our findings are shown in the graph below. Note the two different axis of firearm and violent crimes.
+
+<iframe src="https://public.tableau.com/views/firearmviolent/Sheet1?:showVizHome=no" width="800" height="500"></iframe>
+
+Here we can see that in the early 90's, a significantly larger proportion of violent crimes were firearm crimes. From 1994 onwards, firearm crimes fell significantly faster than overall violent crimes, leading to a much smaller percentage. 2008 onwards, violent crimes began decreasing at a faster rate than firearm crimes, leading to a higher proportion once again.
+
+After answering our tangential question, we sought to understand if education had a better correlation with violent crimes in general rather than firearm specific crimes. Our results are shown below:
+
+```{r}
+projectA <- "https://data.world/ananya-jha/s18-edv-project-4/" 
+data.world::set_config(cfg_env("DW_API")) 
+crimes3 <- data.world::query(data.world::qry_sql(
+ "   
+	select newny.county
+	FROM index_violent_property_and_firearm_rates_by_county_beginning_1990 AS index 
+INNER JOIN newny 
+ON index_violent_property_and_firearm_rates_by_county_beginning_1990.county = newny.county
+WHERE index.year = 2015
+ "),
+dataset = projectA)
+```
+
+```{r}
+inputPanel(selectInput("selectCounties", label="Select County", choices=crimes3,multiple=TRUE, selected=c("Albany", "Bronx", "Saratoga", "Queens", "Nassau"))
+)
+```
+
+```{r}
+df4 <- eventReactive(c(input$selectCounties), { 
+  projectA <- "https://data.world/ananya-jha/s18-edv-project-4/" 
+  data.world::set_config(cfg_env("DW_API")) 
+  paramQuery <- data.world::qry_sql(
+   "   
+SELECT crime.county, crime.year, crime.population, (ROUND(crime.violent_rate/50)*50) as violent_rate_bins, ROUND((B15001_006+B15001_014+B15001_022+B15001_030+B15001_038+B15001_047+B15001_055+B15001_063+B15001_071+B15001_079) / (n.b15001_005 + n.b15001_006+ n.b15001_013+ n.b15001_014+ n.b15001_021+ n.b15001_022+n.b15001_029+ n.b15001_030+ n.b15001_037+ n.b15001_038+ n.b15001_046+ n.b15001_047+ n.b15001_054+ n.b15001_055+ n.b15001_062+ n.b15001_063+n.b15001_070+ n.b15001_071+ n.b15001_078+ n.b15001_079), 3) AS hsGraduates
+FROM newny as n INNER JOIN 
+index_violent_property_and_firearm_rates_by_county_beginning_1990 AS crime
+ON n.county = crime.county 
+where crime.year = 2015 and crime.county in (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+   ")
+  paramQuery$params <- c(input$selectCounties[1], input$selectCounties[2], input$selectCounties[3], input$selectCounties[4], input$selectCounties[5], input$selectCounties[6], input$selectCounties[7], input$selectCounties[8], input$selectCounties[9], input$selectCounties[10], input$selectCounties[11], input$selectCounties[12], input$selectCounties[13], input$selectCounties[14], input$selectCounties[15], input$selectCounties[16], input$selectCounties[17], input$selectCounties[18], input$selectCounties[19], input$selectCounties[20], input$selectCounties[21], input$selectCounties[22], input$selectCounties[23], input$selectCounties[24], input$selectCounties[25], input$selectCounties[26], input$selectCounties[27], input$selectCounties[28], input$selectCounties[29], input$selectCounties[30], input$selectCounties[31], input$selectCounties[32], input$selectCounties[33], input$selectCounties[34], input$selectCounties[35], input$selectCounties[36], input$selectCounties[37], input$selectCounties[38], input$selectCounties[39], input$selectCounties[40], input$selectCounties[41], input$selectCounties[42], input$selectCounties[43], input$selectCounties[44], input$selectCounties[45], input$selectCounties[46], input$selectCounties[47], input$selectCounties[48], input$selectCounties[49], input$selectCounties[50], input$selectCounties[51], input$selectCounties[52], input$selectCounties[53], input$selectCounties[54], input$selectCounties[55], input$selectCounties[56], input$selectCounties[57], input$selectCounties[58], input$selectCounties[59], input$selectCounties[60])
+  data.world::query(paramQuery, dataset = projectA)
+}) 
+```
+
+```{r}
+Counties <- eventReactive(c(input$selectCounties), { 
+  library('stringr')
+  str_c(input$selectCounties, collapse=', ')
+})
+```
+
+```{r}
+renderDataTable({ DT::datatable(df4(), rownames = FALSE, extensions = list(Responsive = TRUE, FixedHeader = TRUE)
+)
+})
+```
+
+```{r}
+# Crosstab
+renderPlot({df4() %>% ggplot() + 
+  geom_text(aes(x=violent_rate_bins, y=county, label=hsGraduates), size=10) +
+  geom_tile(aes(x=violent_rate_bins, y=county, fill=hsGraduates), alpha=0.50) +
+  theme(legend.text=element_text(size=30)) +
+  theme(axis.text=element_text(size=40),
+        axis.title=element_text(size=30, face="bold"))  + 
+  theme(plot.title = element_text(size = 40, face = "bold")) + 
+  ggtitle(paste("Percentage of High School Graduates per", Counties(), " Counties")) +
+  xlab("Violent Rate per 100K") + ylab("Counties")
+}, height = 2000, width = 2000)
+```
+
+Here, we can see that even though there is a stronger correlation between violent crimes and education, it is not statistically significant to indicate any sort of relationship between the two. Thus, we still cannot understand why the violent crime rate has decreased so significantly despite an increase in the population over time.
+
+#Moving Forward
+After concluding that education did not have a significant effect on crime rate, we began researching existing theories as to why crime in New York dropped so sharply in the 1990s. Two leading theories emerged:
+
+1) Crime dropped due to more effective New York policing strategies
+2) Crime dropped due to the legalization of abortion in 1973 (1971 in NY)
+
+The first theory is straightforward. For our final project, we seek to understand the relationship between both theories and the crime rate, and see if these theories hold any merit.
+
+#Policing Strategies in NY vs Crime Rates
+In 1994, Bill Bratton became commissioner of the NYPD and started the enforcement of the "broken windows" policing strategy, which held that punishing minor offenses such as public urination would prevent larger crimes from occurring. This policing strategy was very controversial, as it heavily strained the relationship between the police and minority communities. But was it worth it?
+In order to test if New York City's policing strategies could be attributed to the crime, we started off with a simple question: was crime decreasing only in New York? Our reasoning was that if it was indeed these local policies that decreased crime, we would see a decrease only within New York and not in other states. Here is what we found:
+
+```{r}
+project <- "https://data.world/swarnapuri-sude/s18-edv-final-project" 
+data.world::set_config(cfg_env("DW_API")) 
+crimesState <- data.world::query(data.world::qry_sql(
+ "   
+	SELECT distinct state
+FROM swarnapuri_sude.s18_edv_final_project.crimerates
+ORDER BY swarnapuri_sude.s18_edv_final_project.crimerates.state
+ "),
+dataset = project)
+```
+
+```{r}
+inputPanel(
+  selectInput("selectState_1", label = "Select State", choices = crimesState, multiple=TRUE, selected=c("Alabama", "Arizona", "Nevada", "New Hampshire", "New Jersey", "Arkansas", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "California", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia", "Alaska", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska"))
+)
+```
+
+```{r}
+df3 <- eventReactive(c(input$selectState_1), { 
+  project <- "https://data.world/swarnapuri-sude/s18-edv-final-project" 
+  data.world::set_config(cfg_env("DW_API")) 
+  paramQuery <- data.world::qry_sql(
+    "   
+    select s.state, s.year, s.violent_per_100k
+    from swarnapuri_sude.s18_edv_final_project.crimerates s
+    where state in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    order by s.year
+    ")
+  paramQuery$params <- c(input$selectState_1[1], input$selectState_1[2], input$selectState_1[3], input$selectState_1[4], input$selectState_1[5], input$selectState_1[6], input$selectState_1[7], input$selectState_1[8], input$selectState_1[9], input$selectState_1[10], input$selectState_1[11], input$selectState_1[12], input$selectState_1[13], input$selectState_1[14], input$selectState_1[15], input$selectState_1[16], input$selectState_1[17], input$selectState_1[18], input$selectState_1[19], input$selectState_1[20], input$selectState_1[21], input$selectState_1[22], input$selectState_1[23], input$selectState_1[24], input$selectState_1[25], input$selectState_1[26], input$selectState_1[27], input$selectState_1[28], input$selectState_1[29], input$selectState_1[30], input$selectState_1[31], input$selectState_1[32], input$selectState_1[33], input$selectState_1[34], input$selectState_1[35], input$selectState_1[36], input$selectState_1[37], input$selectState_1[38], input$selectState_1[39], input$selectState_1[40], input$selectState_1[41], input$selectState_1[42], input$selectState_1[43], input$selectState_1[44], input$selectState_1[45], input$selectState_1[46], input$selectState_1[47], input$selectState_1[48], input$selectState_1[49], input$selectState_1[50])
+  data.world::query(paramQuery, dataset = project)
+})
+```
+
+```{r}
+States <- eventReactive(c(input$selectState_1), { 
+  library('stringr')
+  str_c(input$selectState_1, collapse=', ')
+})
+```
+
+```{r}
+
+renderDataTable({ DT::datatable(df3(), rownames = FALSE, extensions = list(Responsive = TRUE, FixedHeader = TRUE)
+)
+})
+```
+
+```{r}
+# Notice the need to use df() below:
+
+# Crosstab
+renderPlot({df3() %>% ggplot() + 
+  geom_boxplot(mapping = aes(x = as.factor(year), y = violent_per_100k, colour="blue"), size =2) + geom_point(mapping=aes(x=as.factor(year), y=violent_per_100k, colour=state, size=3)) +
+  theme(legend.text=element_text(size=1)) +
+  theme(axis.text=element_text(size=20),
+        axis.title=element_text(size=40, face="bold"))  + 
+  theme(plot.title = element_text(size = 60, face = "bold")) + 
+  ggtitle(paste("Violent Crimes across ", States())) +
+  xlab("Years") + ylab("Violent Crimes")
+}, height = 2000, width = 2000)
+```
+
+Each boxplot is comprised of the crime rate in each state. As we can see here, there is a sharp decrease in crime after 1990, which is highlighted by the medians we can see for each year slowly decreasing. This is interesting because it depicts that crime was decreasing all over the United States, not just in New York.
+
+From the graph above we can see that the sharp decreases in crime were occurring all over the United States, even in states that did not implement harsher policing strategies. This led to move on and consider our second theory.
+
+#Abortion vs Crime Rates
+Economist Steven Levitt, author of freakonomics, championed the theory that abortion is what actually led to the decrease of crimes in the 1990s. The logic behind his theory asserts that children from women who are not financially/emotionally/mentally ready to have a baby (and thus are most likely to get abortions) are more likely to become criminals due to the background and circumstances in which they grow up. Because abortion was legalized, the
+children who would have been criminals 18+ years later are not born, and that is why we see such sharp decreases in the levels of crime.
+
+To test this theory, we used US data about crime and the number of abortions from before abortions were legalized. We advanced the abortion data by 18 years so that we can compare the number of abortions to the crime ~18 years later. Here is what we found:
+
+<iframe src="https://public.tableau.com/views/FinalProject_511/Sheet2?:showVizHome=no" width="800" height="500"></iframe>
+
+Here, we see that in the years prior to when abortion was legalized, the crime rate fluctuated greatly 18 years after. 18 years after the legalization of abortion, crimes had neared their peak (1991). However, as abortions started increasing over the years, we found that crime rates decreased accordingly. More recently however, we find that even as abortions started decreasing - crime rates continued to fall.
+
+At first we were perplexed as to why this was occurring. We realized, however, that the effect of an abortion 18 years prior would last longer than that first year. If this were true, it would mean that crimes could continue to decrease even if abortions decreased, but would have to decrease at a smaller rate. Therefore, it was more effective to measure the change of the number of abortions year over year, and analyze that against the changes in crime. This is what we found:
+
+<iframe src="https://public.tableau.com/views/FinalProject_511/Sheet1?:showVizHome=no" width="800" height="500"></iframe>
+
+Here, we can see that there is still no correlation between the % change in abortions vs the % change in crime (althought it may seem that there is in the first few years after Roe v. Wade. We see that again here: 
+
+```{r}
+source("DataA.R", local = TRUE)
+project4 <- "https://data.world/swarnapuri-sude/s18-edv-final-project" 
+data.world::set_config(cfg_env("DW_API"))
+```
+
+```{r}
+inputPanel(
+  sliderInput("selectYear2", label = "Year:", min = 1968, max = 2012, value = c(1972, 1992), step = 1)
+)
+```
+
+```{r}
+dashboardPage(
+  dashboardHeader(
+  ),
+  dashboardSidebar(
+    sidebarMenu(
+      menuItem("% Change in Abortion Rates", tabName = "barChart1", icon = icon("dashboard")),
+      menuItem("% Change in Violent Crimes Rates", tabName = "barChart2", icon = icon("dashboard"))
+    )
+  ),
+  dashboardBody(
+    tabItems(
+      tabItem(tabName = "barChart1",
+        source("sud-barChart1UI.R",local = TRUE)$value
+      ),
+            tabItem(tabName = "barChart2",
+        source("sud-barChart12UI.R",local = TRUE)$value
+      )
+    )
+  )
+)
+source("sud-barChart1Server.R", local = TRUE)
+source("sud-barChart2Server.R", local = TRUE)
+```
+
+A side by side comparison of these car charts can be views at [this link](https://data.world/swarnapuri-sude/s18-edv-final-project/insights/77eb71e4-2b73-4834-801b-a9a2ee2a7d2b) via a data.world insight using a tableau visualization.
+After examining and disproving both theories, we concluded that neither were able to explain the drastic changes in crime rates. We conducted research online and found that there are many different theories - ranging from abolition of lead in gas after the clean fuel act to the decrease in alcohol consumption - but none of the theories show a strong enough correlation to explain the drastic decline in crime rates.
+
+Whatever the reason is, it is bound to be something interesting.
+
+#Tangential
+
+The following graphic shows the crime rate of different counties in New York - the average is around 425 per 100k people.
+
+<iframe src="https://public.tableau.com/shared/PT6S7HWZK?:showVizHome=no" width="800" height="500"></iframe>
+
+This insight divides the map of New York by its counties and labels each county's violent rate per 100,000 people. Also, the darker the color of the county the larger the population. You can see that the places with a higher population density tend to have a higher violent rate. It makes sense that areas with higher human interaction would lead to these higher violent rates.
+
+While we were conducting our research, we were interested to see how the different crimes related to one another. Below, we can see that there are much higher levels of property crimes compared to violent and firearm crimes in every city.
+
+<iframe src="https://public.tableau.com/views/Insight2_21/Sheet1?::showVizHome=no" width="800" height="500"></iframe>
+
+#Appendix: Packages, Link to Insights, GitHub Repo, and Data Cleaning
+
+```{r}
+sessionInfo()
+```
+
+Inights:
+
+- [Link to Data.World Project](https://data.world/ananya-jha/s18-edv-project-4)
+
+- [Male HS Dropouts vs Firearm Crime Rates (per 100,000 people)](https://data.world/ananya-jha/s18-edv-project-4/insights/a6a53614-2c07-4b84-a603-7c02f8bebe74)
+
+- [Violence compared to Schooling below Ninth Grade](https://data.world/ananya-jha/s18-edv-project-4/insights/34b12891-f058-4f4c-9625-d3d7e7567f37)
+
+- [Violent Rate in NYC Counties vs. % of 18-24 Males w/Diplomas](https://data.world/ananya-jha/s18-edv-project-4/insights/0f42f8ec-296b-4233-a0ea-ee188b34f180)
+
+- [Firearm Rate Amongst Dropouts](https://data.world/ananya-jha/s18-edv-project-4/insights/f40540f3-2a3c-4f2e-874e-98e7b4304db3)
+
+Github:
+
+- [Link to Repository](https://github.com/CannataUTDV/s18dvproject4-jha-swarnapuri-freese-rupani)
+
+Data Cleaning:
+
+df <- read_csv("Index__Violent__Property__and_Firearm_Rates_By_County__Beginning_1990.csv"
+
+, col_types = list(
+
+  county = col_character(),
+  
+  year = col_number(),
+
+  population = col_number(),
+
+  index_count = col_number(),
+
+  index_rate = col_number(),
+
+  violent_count = col_number(),
+
+  violent_rate = col_number(),
+
+  property_count = col_number(),
+
+  property_rate = col_number(),
+
+  firearm_count = col_number(),
+
+  firearm_rate = col_number()
+
+))
+
+
+
+names(df) <- gsub("\\.+", " ", names(df))
+
+names(df) <- gsub("\\/", " ", names(df))
+
+names(df) <- gsub("\\=", " ", names(df))
+
+names(df) <- gsub("\\&", " ", names(df))
+
+names(df) <- gsub("\\+", " ", names(df))
+
+names(df) <- gsub("-+", " ", names(df))
+
+names(df) <- gsub("[^ -~]", "", names(df))
+
+
+write_csv(df)
+
+
+newny <- read_csv("ny.csv")
+
+library(dplyr)
+
+newny = newny %>% dplyr::mutate(areaname(gsub(pattern=" .+", replacement="",county)))
+
+write_csv(newny)
